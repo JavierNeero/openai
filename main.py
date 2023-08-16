@@ -1,71 +1,77 @@
 import json
 import os
-from typing import Literal, Optional
-from uuid import uuid4
 from fastapi import FastAPI, HTTPException
-import random
-from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+import asyncio
+from handler.query import QueryData, Embed
+from handler.run import run_agent
+from handler.agent import MegaAgent
+from langchain import PromptTemplate, LLMChain
 from mangum import Mangum
-
-
-class Book(BaseModel):
-    name: str
-    genre: Literal["fiction", "non-fiction"]
-    price: float
-    book_id: Optional[str] = uuid4().hex
-
-
-BOOKS_FILE = "books.json"
-BOOKS = []
-
-if os.path.exists(BOOKS_FILE):
-    with open(BOOKS_FILE, "r") as f:
-        BOOKS = json.load(f)
+from loguru import logger
 
 app = FastAPI()
 handler = Mangum(app)
+ss = Embed()
 
+ada_agent = MegaAgent.initialize()
+
+@app.on_event("startup")
+async def load_data():
+    #ss.load_data()
+    pass
+
+def semantic_search(query: str, top_n: int = 5):
+    search_results = ss.search(query, top_n)
+    results_str = ", ".join([f"{row.get('marca', 'N/A')} - {row.get('producto', 'N/A')}" for _, row in search_results.iterrows()])
+    return results_str
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to my bookstore app!"}
+    return {"message": "Neero AI"}
+    
+@app.post("/chat")
+async def query_and_chat(msg: dict = None):
+    txt = msg.get('message', {}).get('text')
+    if not txt:
+        return JSONResponse(status_code=200, content={'action': 'reply', 'replies': ["Hola!, Soy Tulia, ¿En qué te puedo ayudar?"], "suggestions": ["Comprar Material","Comprar a en la App"]})
+    try:
+        qd = QueryData()
+        result = qd.chat_data(question=txt, semantic_search=semantic_search)
+        return JSONResponse(status_code=200, content={'action': 'reply', 'replies': [result['answer']]})
+    except Exception as e:
+        logger.error(f'[-] Chat failed: {e}')
+        return JSONResponse(status_code=400, content={'action': 'reply', 'replies': 'Chat failed!'})
 
+@app.post("/search")
+async def embed_search(chat: dict):
+    try:
+        result = ss.search(query=chat['question'])
+        if result is None:
+            return {'answer': 'No match found!'}
+        result_json = result.to_dict(orient='records')
+        return {'answer': result_json}
+    except Exception as e:
+        logger.error(f'[-] Search failed: {e}')
+        raise HTTPException(status_code=400, detail='Search failed!')
 
-@app.get("/random-book")
-async def random_book():
-    return random.choice(BOOKS)
-
-
-@app.get("/list-books")
-async def list_books():
-    return {"books": BOOKS}
-
-
-@app.get("/book_by_index/{index}")
-async def book_by_index(index: int):
-    if index < len(BOOKS):
-        return BOOKS[index]
-    else:
-        raise HTTPException(404, f"Book index {index} out of range ({len(BOOKS)}).")
-
-
-@app.post("/add-book")
-async def add_book(book: Book):
-    book.book_id = uuid4().hex
-    json_book = jsonable_encoder(book)
-    BOOKS.append(json_book)
-
-    with open(BOOKS_FILE, "w") as f:
-        json.dump(BOOKS, f)
-
-    return {"book_id": book.book_id}
-
-
-@app.get("/get-book")
-async def get_book(book_id: str):
-    for book in BOOKS:
-        if book.book_id == book_id:
-            return book
-
-    raise HTTPException(404, f"Book ID {book_id} not found in database.")
+@app.post("/ada")
+async def agente_ada(msg: dict = None):
+    txt = msg.get('message', {}).get('text')
+    if not txt:
+        return JSONResponse(status_code=200, content={'action': 'reply', 'replies': ["Hola!, soy Ada, ¿En qué te puedo ayudar?"], "suggestions": ["Quiero un Crédito","Quiero comprar carro"]})
+    try:
+        prompt = PromptTemplate(
+            template="""Plan: {input}
+            History: {chat_history}
+            Let's think about answer step by step.
+            If it's information retrieval task, solve it like a professor in particular field.""",
+            input_variables=["input", "chat_history"],
+        )
+        
+        result = ada_agent.run(txt)
+        print("Res: ", result)
+        return JSONResponse(status_code=200, content={'action': 'reply', 'replies': [result]})
+    except Exception as e:
+        logger.error(f'[-] Chat failed: {e}')
+        return JSONResponse(status_code=400, content={'action': 'reply', 'replies': 'Chat failed!'})

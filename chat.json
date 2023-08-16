@@ -1,0 +1,20 @@
+{
+    'handler': 'trigger', 
+    'request': {
+        'os': 'Apple Macintosh', 'location': {'country': 'Colombia'}, 
+        'id': '6aec4b0c031058c1c3d9fa15a6c0b923100a6ee610d8abe6b81a19ce725918a721e578c90a4ce9735e19ca6dd6b6cf4cae173eedce9f3d19f494ae6c7627dbba', 
+        'app_id': '771485000000668027'
+        }, 
+    'org_id': '796387204', 
+    'visitor': {
+        'active_conversation_id': 'botpreview_771485000000005001_771485000000741005', 
+        'country_code': 'CO', 
+        'country': 'Colombia', 
+        'os': 'Apple Macintosh', 
+        'department_id': 771485000000668011, 
+        'channel': 'website', 
+        'language': 'en', 
+        'time_zone': 'America/Bogota', 
+        'email': 'hola@tiendatul.com'
+    }
+}

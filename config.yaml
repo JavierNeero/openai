@@ -1,0 +1,13 @@
+openai:
+  api_key: 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
+  chat_model: gpt-3.5-turbo
+  embedding_model: text-embedding-ada-002
+  other_model: text-davinci-003
+  temperature: 0
+
+langchain:
+  max_history: 5
+  ctx_length: 2
+  max_token: 500
+  similarity_search_k: 3
+  chain_type: stuff
