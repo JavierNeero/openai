@@ -1,0 +1,24 @@
+# .gitignore
+
+# Ignorar el directorio de configuración de VSCode
+.vscode/
+
+# Ignorar todos los archivos .log
+*.log
+
+# Ignorar todos los archivos .env que contienen variables de entorno
+*.env
+
+# Ignorar el directorio __pycache__/ en cualquier lugar
+**/__pycache__/
+
+# Ignorar todos los archivos .pyc que se crean cuando se ejecutan scripts de Python
+*.pyc
+
+# Ignorar directorios específicos de herramientas y entornos virtuales
+/venv/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
